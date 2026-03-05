@@ -6,7 +6,7 @@
     },
     "plugins": [
         {
-            "name": "pagerduty:risk-scoring",
+            "name": "risk-scoring",
             "source": "./plugins/precommit-risk-scoring",
             "description": "Pre-commit risk assessment using PagerDuty incident history, change event correlation, and git diff analysis.",
             "version": "1.0.0",
