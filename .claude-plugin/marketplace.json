@@ -1,0 +1,13 @@
+{
+    "name": "pagerduty-claude-code-plugins",
+    "owner": {
+        "name": "PagerDuty"
+    },
+    "plugins": [
+        {
+            "name": "precommit-risk-scoring",
+            "source": "./plugins/precommit-risk-scoring",
+            "description": "Pre-commit risk assessment using PagerDuty incident history, change event correlation, and git diff analysis."
+        }
+    ]
+}
