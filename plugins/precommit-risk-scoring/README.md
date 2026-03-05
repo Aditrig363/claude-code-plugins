@@ -9,7 +9,7 @@ The `/risk-score` command gathers PagerDuty incident data for your service, anal
 ### 1. Add the marketplace
 
 ```
-/plugin marketplace add PagerDuty/claude-code-plugins
+/plugin marketplace add pagerduty/claude-code-plugins
 ```
 
 ### 2. Install the plugin

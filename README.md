@@ -21,7 +21,7 @@ PagerDuty's open source [Claude Code plugins](https://code.claude.com/docs/en/pl
 Run this once in any Claude Code session:
 
 ```bash
-/plugin marketplace add PagerDuty/claude-code-plugins
+/plugin marketplace add pagerduty/claude-code-plugins
 ```
 
 ### 2. Browse and install plugins
@@ -52,7 +52,7 @@ You can configure a repository so team members are automatically prompted to add
     "pagerduty-claude-code-plugins": {
       "source": {
         "source": "github",
-        "repo": "PagerDuty/claude-code-plugins"
+        "repo": "pagerduty/claude-code-plugins"
       }
     }
   }
@@ -67,7 +67,7 @@ To also auto-enable specific plugins for the project:
     "pagerduty-claude-code-plugins": {
       "source": {
         "source": "github",
-        "repo": "PagerDuty/claude-code-plugins"
+        "repo": "pagerduty/claude-code-plugins"
       }
     }
   },
