@@ -22,7 +22,7 @@ PagerDuty MCP server is not available. This plugin requires it.
 To fix:
 1. Set the PAGERDUTY_API_KEY environment variable with a valid PagerDuty API token
 2. Restart Claude Code so the plugin's MCP server configuration is loaded
-3. Re-run /risk-score
+3. Re-run /pre-commit-risk-scoring
 ```
 
 Do NOT proceed without PagerDuty MCP. Do NOT fall back to a degraded assessment. The entire point of this plugin is PagerDuty incident correlation.
@@ -37,7 +37,7 @@ If both are empty, run `git log -1 --oneline` and tell the user:
 No uncommitted changes detected. The most recent commit is:
 <commit hash and message>
 
-/risk-score analyzes uncommitted changes. Make some changes first, or if you want to assess the last commit, let me know.
+/pre-commit-risk-scoring analyzes uncommitted changes. Make some changes first, or if you want to assess the last commit, let me know.
 ```
 
 Then STOP. Do not proceed to analyze committed history on your own.

@@ -6,8 +6,8 @@
     },
     "plugins": [
         {
-            "name": "pre-commit",
-            "source": "./plugins/pre-commit",
+            "name": "pagerduty",
+            "source": "./",
             "description": "Pre-commit risk assessment using PagerDuty incident history, change event correlation, and git diff analysis.",
             "version": "1.0.0",
             "author": {
