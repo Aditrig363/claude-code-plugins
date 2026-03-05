@@ -38,12 +38,21 @@ This file is gitignored by default, so secrets stay local:
 
 If the file already exists, merge the `env` key into it.
 
-**Option B: Shell profile**
+**Option B: Global via `~/.claude/settings.json`**
 
-```bash
-# In ~/.zshrc or ~/.bashrc
-export PAGERDUTY_API_KEY=your-pagerduty-token
+This applies the key to all projects:
+
+```json
+{
+  "env": {
+    "PAGERDUTY_API_KEY": "your-pagerduty-token"
+  }
+}
 ```
+
+If the file already exists, merge the `env` key into it.
+
+> **Note:** If you are using the Visual Studio Code extension, you may need to restart VS Code for environment variable changes to take effect.
 
 ### Where to get the token
 

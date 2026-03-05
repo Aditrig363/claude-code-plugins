@@ -1,16 +1,18 @@
 {
     "name": "pagerduty-claude-code-plugins",
+    "description": "A collection of Claude Code plugins developed by PagerDuty to enhance code quality and security through risk scoring and incident correlation.",
     "owner": {
         "name": "PagerDuty"
     },
-    "metadata": {
-        "description": "A collection of Claude Code plugins developed by PagerDuty to enhance code quality and security through risk scoring and incident correlation."
-    },
     "plugins": [
         {
-            "name": "precommit-risk-scoring",
+            "name": "pagerduty/risk-scoring",
             "source": "./plugins/precommit-risk-scoring",
-            "description": "Pre-commit risk assessment using PagerDuty incident history, change event correlation, and git diff analysis."
+            "description": "Pre-commit risk assessment using PagerDuty incident history, change event correlation, and git diff analysis.",
+            "version": "1.0.0",
+            "author": {
+                "name": "PagerDuty"
+            }
         }
     ]
 }
