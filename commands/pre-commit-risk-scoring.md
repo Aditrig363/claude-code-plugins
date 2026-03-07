@@ -120,23 +120,23 @@ If there are no active incidents, note that briefly and continue.
 
 ## Step 3: Fetch Recent Incident History
 
-**Start these calls in parallel with Step 2** — they are fully independent. Make the following two calls in parallel with each other:
+**Start these calls in parallel with Step 2** — they are fully independent. Make the following three calls in parallel with each other:
 
-1. Call `mcp__plugin_pagerduty_pagerduty__list_incidents` for the service over the last 90 days (use `since` parameter set to 90 days ago from today, and `until` set to today). Include all statuses.
+1. Call `mcp__plugin_pagerduty_pagerduty__list_incidents` for the service over the last 90 days, filtered to **high urgency** (use `since` set to 90 days ago, `until` set to today, and `urgencies: ["high"]`). Include all statuses.
 
    **Limit handling**: The API caps results at 1000 incidents. If exactly 1000 are returned, the history is partial — note this in the assessment and state the actual date range covered (i.e. the timestamp of the oldest incident returned).
 
-2. Call `mcp__plugin_pagerduty_pagerduty__list_service_change_events` for the service to get recent change events that PagerDuty has tracked. **Before analyzing**, deduplicate change events by `summary + timestamp` — the API often returns 5–6 identical entries for the same deploy.
+2. Call `mcp__plugin_pagerduty_pagerduty__list_incidents` for the service over the last 90 days, filtered to **low urgency** (same date range, `urgencies: ["low"]`). Include all statuses.
 
-For incidents that warrant fetching notes, do not rely solely on `urgency: "high"` — the API frequently omits the urgency field. Instead, fetch notes for incidents that match **either** of these criteria:
-- `urgency` is `"high"` (P1/P2), OR
-- The title contains keywords: `"critical"`, `"error-rate"`, `"5xx"`, `"timeout"`, `"down"`, `"outage"`, `"p1"`, `"p2"`
+   Apply the same limit handling as above independently for this call.
 
-**Cap notes fetching at 10 incidents** (most recent first). If more than 10 incidents match, note how many were skipped.
+3. Call `mcp__plugin_pagerduty_pagerduty__list_service_change_events` for the service to get recent change events that PagerDuty has tracked. **Before analyzing**, deduplicate change events by `summary + timestamp` — the API often returns 5–6 identical entries for the same deploy.
+
+For incidents that warrant fetching notes, use the high-urgency list from call 1 directly — no keyword guessing needed. **Cap notes fetching at 10 incidents** (most recent first). If the high-urgency list has more than 10, note how many were skipped.
 
 From the collected data, summarize:
-- Total incident count over 90 days (note if partial due to the 1000-incident cap)
-- Severity distribution (how many high-urgency vs low-urgency)
+- Total incident count over 90 days: high-urgency count (from call 1) + low-urgency count (from call 2), noting if either is partial due to the 1000-incident cap
+- Severity distribution: high-urgency vs low-urgency counts
 - Recency of the most recent resolved incident
 - Common patterns in incident titles or notes (repeated keywords, affected components)
 - Change events (deduplicated) and their timing relative to incidents
