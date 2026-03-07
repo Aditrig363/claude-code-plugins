@@ -1,7 +1,7 @@
 ---
 description: "Assess pre-commit risk by correlating PagerDuty incidents with current code changes"
-argument-hint: "[service-name-override]"
-allowed-tools: ["Read", "Glob", "Grep", "Bash", "Write", "AskUserQuestion", "mcp__pagerduty__list_services", "mcp__pagerduty__list_incidents", "mcp__pagerduty__list_incident_notes", "mcp__pagerduty__list_service_change_events"]
+argument-hint: "[pagerduty-service-name]"
+allowed-tools: ["ToolSearch", "Read", "Glob", "Grep", "Bash", "Write", "AskUserQuestion", "mcp__plugin_pagerduty_pagerduty__get_service", "mcp__plugin_pagerduty_pagerduty__list_services", "mcp__plugin_pagerduty_pagerduty__list_incidents", "mcp__plugin_pagerduty_pagerduty__list_incident_notes", "mcp__plugin_pagerduty_pagerduty__list_service_change_events"]
 ---
 
 You are performing a pre-commit risk assessment. Follow these steps precisely and in order. Do not skip steps. Do not silently degrade -- if a required tool is unavailable, stop and tell the user.
@@ -12,9 +12,11 @@ Before doing anything else, verify that the required MCP tools are available.
 
 ### 0a: Verify PagerDuty MCP
 
-Call `mcp__pagerduty__list_services` with query `"test"`. This is a connectivity check.
+First, call `ToolSearch` with query `"select:mcp__plugin_pagerduty_pagerduty__get_service,mcp__plugin_pagerduty_pagerduty__list_services,mcp__plugin_pagerduty_pagerduty__list_incidents,mcp__plugin_pagerduty_pagerduty__list_incident_notes,mcp__plugin_pagerduty_pagerduty__list_service_change_events"` to load all required PagerDuty tools. If ToolSearch returns no results, STOP immediately (see error below).
 
-If the call fails or the tool is not available, STOP and tell the user:
+Once loaded, call `mcp__plugin_pagerduty_pagerduty__list_services` with query `"test"`. This is a connectivity check.
+
+If ToolSearch returns no PagerDuty tools, or the connectivity call fails, STOP and tell the user:
 
 ```
 PagerDuty MCP server is not available. This plugin requires it.
@@ -22,7 +24,7 @@ PagerDuty MCP server is not available. This plugin requires it.
 To fix:
 1. Set the PAGERDUTY_API_KEY environment variable with a valid PagerDuty API token
 2. Restart Claude Code so the plugin's MCP server configuration is loaded
-3. Re-run /pre-commit-risk-scoring
+3. Re-run /pagerduty:pre-commit-risk-scoring
 ```
 
 Do NOT proceed without PagerDuty MCP. Do NOT fall back to a degraded assessment. The entire point of this plugin is PagerDuty incident correlation.
@@ -37,7 +39,7 @@ If both are empty, run `git log -1 --oneline` and tell the user:
 No uncommitted changes detected. The most recent commit is:
 <commit hash and message>
 
-/pre-commit-risk-scoring analyzes uncommitted changes. Make some changes first, or if you want to assess the last commit, let me know.
+/pagerduty:pre-commit-risk-scoring analyzes uncommitted changes. Make some changes first, or if you want to assess the last commit, let me know.
 ```
 
 Then STOP. Do not proceed to analyze committed history on your own.
@@ -48,24 +50,35 @@ Determine the PagerDuty service ID for this repository.
 
 ### 1a: Check cached configuration
 
-Read `.claude/risk-config.json`. If it exists and contains `pagerduty.serviceId`, use that value and skip to Step 2. Display the cached service name to the user.
+Read `.claude/risk-config.json`. If it exists and contains `pagerduty.serviceId`:
+
+- If `$ARGUMENTS` is provided and does not match the cached service name (case-insensitive), tell the user: `"Cached service is <serviceName> but you passed '<ARGUMENTS>'. Which should I use?"` and let them decide via `AskUserQuestion`. Use their answer going forward.
+- Otherwise, validate the cached ID by calling `mcp__plugin_pagerduty_pagerduty__get_service` with that ID. If the call succeeds, use the service and skip to Step 2 — display the cached service name to the user. If the call fails (service not found or API error), discard the cached config, warn the user, and continue to Step 1b/1c to re-resolve.
 
 ### 1b: Check Backstage catalog
 
 If no cached config, check for `catalog-info.yaml` in the repository root. Look for the `pagerduty.com/service-id` annotation under `metadata.annotations`. If found, use that service ID.
 
-Validate it by calling `mcp__pagerduty__list_services` with a query matching the service ID. Extract the service name from the response.
+Validate it by calling `mcp__plugin_pagerduty_pagerduty__get_service` with the literal service ID (e.g. `PAWX771`). Do NOT pass the ID to `list_services` — querying by raw UUID returns a 502. Extract the service name from the response.
+
+If `$ARGUMENTS` is provided and does not match the resolved service name (case-insensitive), tell the user: `"catalog-info.yaml maps this repo to <serviceName> but you passed '<ARGUMENTS>'. Which should I use?"` and let them decide via `AskUserQuestion`.
 
 ### 1c: Auto-detect from repository name
 
 If neither config nor catalog exists:
 
-1. Get the repository name from the current directory basename, or parse it from `git remote -v` output.
-2. Call `mcp__pagerduty__list_services` with a query matching the repository name.
-3. If exactly one service matches: use it. Tell the user which service was detected and ask them to confirm.
-4. If multiple services match: present the options to the user via `AskUserQuestion` and let them pick.
-5. If no services match and `$ARGUMENTS` is provided: call `mcp__pagerduty__list_services` with `$ARGUMENTS` as the query. If that matches, use it.
-6. If still no match: use `AskUserQuestion` to ask the user for the PagerDuty service name or ID. Search for it with `mcp__pagerduty__list_services` to validate and get the canonical service ID.
+1. If `$ARGUMENTS` is provided, use it as the search query immediately — **do not check the repository name first**. Call `mcp__plugin_pagerduty_pagerduty__list_services` with `$ARGUMENTS` as the query.
+   - If exactly one service matches: use it.
+   - If multiple match: present the options to the user via `AskUserQuestion` and let them pick.
+   - If no match: tell the user no service was found for that name and ask them to verify it.
+   - Do NOT fall through to repo-name detection when `$ARGUMENTS` was provided.
+
+2. If `$ARGUMENTS` is not provided, fall back to repo-name detection:
+   - Get the repository name from the current directory basename, or parse it from `git remote -v` output.
+   - Call `mcp__plugin_pagerduty_pagerduty__list_services` with a query matching the repository name.
+   - If exactly one service matches: use it. Tell the user which service was detected and ask them to confirm.
+   - If multiple services match: present the options to the user via `AskUserQuestion` and let them pick.
+   - If no match: use `AskUserQuestion` to ask the user for the PagerDuty service name or ID. Search for it with `mcp__plugin_pagerduty_pagerduty__list_services` to validate and get the canonical service ID.
 
 ### 1d: Persist configuration
 
@@ -85,12 +98,12 @@ Create the `.claude/` directory first if it does not exist.
 
 ## Step 2: Check Ongoing Incidents
 
-Call `mcp__pagerduty__list_incidents` with:
+Call `mcp__plugin_pagerduty_pagerduty__list_incidents` with:
 
 - `statuses`: `["triggered", "acknowledged"]`
 - `service_ids`: `["<serviceId>"]`
 
-For each active incident returned, call `mcp__pagerduty__list_incident_notes` to get responder context.
+For each active incident returned, call `mcp__plugin_pagerduty_pagerduty__list_incident_notes` to get responder context. **Cap at 5 active incidents** — if more are returned, fetch notes only for the 5 most recently triggered and note the total count.
 
 If there are active incidents, report them prominently -- these are the highest-priority risk signal. Use this format:
 
@@ -108,20 +121,30 @@ If there are no active incidents, note that briefly and continue.
 
 ## Step 3: Fetch Recent Incident History
 
-Call `mcp__pagerduty__list_incidents` for the service over the last 90 days (use `since` parameter set to 90 days ago from today, and `until` set to today). Include all statuses.
+**Start these calls in parallel with Step 2** — they are fully independent. Make the following two calls in parallel with each other:
 
-For any P1 or P2 severity incidents (urgency "high"), call `mcp__pagerduty__list_incident_notes` to get root cause and remediation context.
+1. Call `mcp__plugin_pagerduty_pagerduty__list_incidents` for the service over the last 90 days (use `since` parameter set to 90 days ago from today, and `until` set to today). Include all statuses.
 
-Call `mcp__pagerduty__list_service_change_events` for the service to get recent change events that PagerDuty has tracked.
+   **Limit handling**: The API caps results at 1000 incidents. If exactly 1000 are returned, the history is partial — note this in the assessment and state the actual date range covered (i.e. the timestamp of the oldest incident returned).
+
+2. Call `mcp__plugin_pagerduty_pagerduty__list_service_change_events` for the service to get recent change events that PagerDuty has tracked. **Before analyzing**, deduplicate change events by `summary + timestamp` — the API often returns 5–6 identical entries for the same deploy.
+
+For incidents that warrant fetching notes, do not rely solely on `urgency: "high"` — the API frequently omits the urgency field. Instead, fetch notes for incidents that match **either** of these criteria:
+- `urgency` is `"high"` (P1/P2), OR
+- The title contains keywords: `"critical"`, `"error-rate"`, `"5xx"`, `"timeout"`, `"down"`, `"outage"`, `"p1"`, `"p2"`
+
+**Cap notes fetching at 10 incidents** (most recent first). If more than 10 incidents match, note how many were skipped.
 
 From the collected data, summarize:
-- Total incident count over 90 days
+- Total incident count over 90 days (note if partial due to the 1000-incident cap)
 - Severity distribution (how many high-urgency vs low-urgency)
 - Recency of the most recent resolved incident
 - Common patterns in incident titles or notes (repeated keywords, affected components)
-- Change events and their timing relative to incidents
+- Change events (deduplicated) and their timing relative to incidents
 
 ## Step 4: Analyze Current Changes and Correlate
+
+**Start Steps 4a and 4b in parallel with Steps 2 and 3** — git commands are local and do not depend on PagerDuty data.
 
 ### 4a: Gather current changes
 
@@ -166,6 +189,8 @@ Based on all the data gathered, assign a risk score from 0 to 5:
 - **4** -- High risk. Active incidents on the service AND changes correlate with incident-affected areas, OR large changes to critical paths with recent incident history.
 - **5** -- Critical. Active P1/P2 incident AND current changes directly touch the code involved in the incident.
 
+**Noisy alert adjustment**: Before scoring, check if incident volume is dominated by a single repeating alert title (e.g. 95 out of 100 incidents are "heap-memory-usage"). If so, call that out explicitly in the Risk Factors section and weight those incidents lower than diverse incidents across multiple alert types. The raw incident count alone is misleading in this case.
+
 Build the score bar using filled and empty blocks. For score N, use N filled blocks (█) and (5-N) empty blocks (░):
 - 0/5: `░░░░░`
 - 1/5: `█░░░░`
@@ -185,7 +210,8 @@ Service: <service-name> (<service-id>) | Changes: <N> files (+<additions>, -<del
 RISK SCORE: <N>/5 [<LEVEL>] <score-bar>
 
 Active incidents: <"None" or one-line summary per incident>
-Incident history (90d): <count> incidents. <one-line summary of severity, recency, patterns>
+Incident history (90d): <count> incidents (<"partial: oldest covered is <date>" if capped at 1000>). <one-line summary of severity, recency, patterns>
+Notes fetched: <N> incidents (<"X skipped due to cap" if applicable>)
 
 CHANGE ANALYSIS
 - <file-or-group> -- <what changed, one line>
