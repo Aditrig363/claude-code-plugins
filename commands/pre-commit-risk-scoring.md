@@ -210,7 +210,6 @@ RISK SCORE: <N>/5 [<LEVEL>] <score-bar>
 
 Active incidents: <"None" or one-line summary per incident>
 Incident history (90d): <count> incidents (<"partial: oldest covered is <date>" if capped at 1000>). <one-line summary of severity, recency, patterns>
-Notes fetched: <N> incidents (<"X skipped due to cap" if applicable>)
 
 CHANGE ANALYSIS
 - <file-or-group> -- <what changed, one line>

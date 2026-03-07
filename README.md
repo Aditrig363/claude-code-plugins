@@ -70,7 +70,7 @@ This applies the key to all projects:
 
 If the file already exists, merge the `env` key into it.
 
-> **Note:** If you are using the Visual Studio Code extension, you may need to restart VS Code for environment variable changes to take effect.
+> **Note:** You may need to restart VS Code for environment variable changes to take effect.
 
 #### Where to get the token
 
@@ -149,14 +149,15 @@ With uncommitted changes in your working tree:
 
 On first run, the plugin resolves your repository to a PagerDuty service through a fallback chain:
 
-1. Cached config in `.claude/risk-config.json`
-2. Backstage `catalog-info.yaml` annotation (`pagerduty.com/service-id`)
-3. Auto-detection by matching the repository name against PagerDuty services
-4. Manual input via interactive prompt
+1. Explicit argument passed at invocation (one-time override, not cached)
+2. Cached config in `.claude/risk-config.json`
+3. Backstage `catalog-info.yaml` annotation (`pagerduty.com/service-id`)
+4. Auto-detection by matching the repository name against PagerDuty services
+5. Manual input via interactive prompt
 
 The resolved mapping is saved to `.claude/risk-config.json` for subsequent runs.
 
-You can pass a service name hint as an argument:
+You can pass a service name as a one-time override. This takes highest priority, skipping cache and auto-detection, and will not update `.claude/risk-config.json`:
 
 ```bash
 /pagerduty:pre-commit-risk-scoring my-service-name
@@ -192,7 +193,7 @@ commands/
 
 | Server    | Declared in                | Tools used                                                                             |
 | --------- | -------------------------- | -------------------------------------------------------------------------------------- |
-| PagerDuty | `.mcp.json` (plugin-local) | `list_services`, `list_incidents`, `list_incident_notes`, `list_service_change_events` |
+| PagerDuty | `.mcp.json` (plugin-local) | `get_service`, `list_services`, `list_incidents`, `list_incident_notes`, `list_service_change_events` |
 
 ## Contributing
 
