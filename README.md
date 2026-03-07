@@ -35,7 +35,7 @@ Open the plugin manager and go to the **Discover** tab to browse available plugi
 Or install a plugin directly:
 
 ```bash
-/plugin install pre-commit-risk-scoring@pagerduty-claude-code-plugins
+/plugin install pagerduty@pagerduty-claude-code-plugins
 ```
 
 ### 3. Configure API key
@@ -108,7 +108,7 @@ To also auto-enable specific plugins for the project:
     }
   },
   "enabledPlugins": {
-    "pre-commit-risk-scoring@pagerduty-claude-code-plugins": true
+    "pagerduty@pagerduty-claude-code-plugins": true
   }
 }
 ```
@@ -124,27 +124,27 @@ Update the marketplace to get the latest plugins:
 Disable a plugin without uninstalling:
 
 ```bash
-/plugin disable pre-commit-risk-scoring@pagerduty-claude-code-plugins
+/plugin disable pagerduty@pagerduty-claude-code-plugins
 ```
 
 Uninstall a plugin:
 
 ```bash
-/plugin uninstall pre-commit-risk-scoring@pagerduty-claude-code-plugins
+/plugin uninstall pagerduty@pagerduty-claude-code-plugins
 ```
 
 ## Plugin: Pre-Commit Risk Scoring
 
 A plugin that assesses pre-commit risk by correlating PagerDuty incident history with current code changes.
 
-The `/pre-commit-risk-scoring` command gathers PagerDuty incident data for your service, analyzes your current git diff, and looks for correlations between the areas you are changing and areas that have historically caused incidents. It surfaces active incidents, recent incident patterns, structural risk signals in the diff, and actionable recommendations.
+The `/pagerduty:pre-commit-risk-scoring` command gathers PagerDuty incident data for your service, analyzes your current git diff, and looks for correlations between the areas you are changing and areas that have historically caused incidents. It surfaces active incidents, recent incident patterns, structural risk signals in the diff, and actionable recommendations.
 
 ### Usage
 
 With uncommitted changes in your working tree:
 
 ```bash
-/pre-commit-risk-scoring
+/pagerduty:pre-commit-risk-scoring
 ```
 
 On first run, the plugin resolves your repository to a PagerDuty service through a fallback chain:
@@ -159,7 +159,7 @@ The resolved mapping is saved to `.claude/risk-config.json` for subsequent runs.
 You can pass a service name hint as an argument:
 
 ```bash
-/pre-commit-risk-scoring my-service-name
+/pagerduty:pre-commit-risk-scoring my-service-name
 ```
 
 ### Output
@@ -175,7 +175,7 @@ The command produces a structured risk assessment containing:
 
 ### Changing the mapped service
 
-Delete `.claude/risk-config.json` and re-run `/pre-commit-risk-scoring` to pick a different service.
+Delete `.claude/risk-config.json` and re-run `/pagerduty:pre-commit-risk-scoring` to pick a different service.
 
 ### Plugin structure
 
