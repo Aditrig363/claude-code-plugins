@@ -46,43 +46,42 @@ Then STOP. Do not proceed to analyze committed history on your own.
 
 ## Step 1: Resolve Service Mapping
 
-Determine the PagerDuty service ID for this repository.
+Determine the PagerDuty service ID for this repository. Follow the steps **in order** and stop at the first one that resolves a service.
 
-### 1a: Check cached configuration
+### 1a: Use explicit argument (highest priority)
 
-Read `.claude/risk-config.json`. If it exists and contains `pagerduty.serviceId`:
+If `$ARGUMENTS` is provided, use it immediately — **do not check the cache or catalog first**.
 
-- If `$ARGUMENTS` is provided and does not match the cached service name (case-insensitive), tell the user: `"Cached service is <serviceName> but you passed '<ARGUMENTS>'. Which should I use?"` and let them decide via `AskUserQuestion`. Use their answer going forward.
-- Otherwise, validate the cached ID by calling `mcp__plugin_pagerduty_pagerduty__get_service` with that ID. If the call succeeds, use the service and skip to Step 2 — display the cached service name to the user. If the call fails (service not found or API error), discard the cached config, warn the user, and continue to Step 1b/1c to re-resolve.
+Call `mcp__plugin_pagerduty_pagerduty__list_services` with `$ARGUMENTS` as the query.
+- If exactly one service matches: use it and skip to Step 1d.
+- If multiple match: present the options to the user via `AskUserQuestion` and let them pick, then skip to Step 1d.
+- If no match: tell the user no service was found for that name, ask them to verify it, and STOP. Do NOT fall through to cache or repo-name detection.
 
-### 1b: Check Backstage catalog
+### 1b: Check cached configuration
+
+If no `$ARGUMENTS` was provided, read `.claude/risk-config.json`. If it exists and contains `pagerduty.serviceId`, validate it by calling `mcp__plugin_pagerduty_pagerduty__get_service` with that ID. If the call succeeds, use the service and skip to Step 2 — display the cached service name to the user. If the call fails (service not found or API error), discard the cached config, warn the user, and continue to Step 1c.
+
+### 1c: Check Backstage catalog
 
 If no cached config, check for `catalog-info.yaml` in the repository root. Look for the `pagerduty.com/service-id` annotation under `metadata.annotations`. If found, use that service ID.
 
-Validate it by calling `mcp__plugin_pagerduty_pagerduty__get_service` with the literal service ID (e.g. `PAWX771`). Do NOT pass the ID to `list_services` — querying by raw UUID returns a 502. Extract the service name from the response.
+Validate it by calling `mcp__plugin_pagerduty_pagerduty__get_service` with the literal service ID (e.g. `PAWX771`). Do NOT pass the ID to `list_services` — querying by raw UUID returns a 502. Extract the service name from the response. If found, skip to Step 1d.
 
-If `$ARGUMENTS` is provided and does not match the resolved service name (case-insensitive), tell the user: `"catalog-info.yaml maps this repo to <serviceName> but you passed '<ARGUMENTS>'. Which should I use?"` and let them decide via `AskUserQuestion`.
+### 1d: Auto-detect from repository name
 
-### 1c: Auto-detect from repository name
+If none of the above resolved a service:
 
-If neither config nor catalog exists:
+- Get the repository name from the current directory basename, or parse it from `git remote -v` output.
+- Call `mcp__plugin_pagerduty_pagerduty__list_services` with a query matching the repository name.
+- If exactly one service matches: use it. Tell the user which service was detected and ask them to confirm.
+- If multiple services match: present the options to the user via `AskUserQuestion` and let them pick.
+- If no match: use `AskUserQuestion` to ask the user for the PagerDuty service name or ID. Search for it with `mcp__plugin_pagerduty_pagerduty__list_services` to validate and get the canonical service ID.
 
-1. If `$ARGUMENTS` is provided, use it as the search query immediately — **do not check the repository name first**. Call `mcp__plugin_pagerduty_pagerduty__list_services` with `$ARGUMENTS` as the query.
-   - If exactly one service matches: use it.
-   - If multiple match: present the options to the user via `AskUserQuestion` and let them pick.
-   - If no match: tell the user no service was found for that name and ask them to verify it.
-   - Do NOT fall through to repo-name detection when `$ARGUMENTS` was provided.
+### 1e: Persist configuration
 
-2. If `$ARGUMENTS` is not provided, fall back to repo-name detection:
-   - Get the repository name from the current directory basename, or parse it from `git remote -v` output.
-   - Call `mcp__plugin_pagerduty_pagerduty__list_services` with a query matching the repository name.
-   - If exactly one service matches: use it. Tell the user which service was detected and ask them to confirm.
-   - If multiple services match: present the options to the user via `AskUserQuestion` and let them pick.
-   - If no match: use `AskUserQuestion` to ask the user for the PagerDuty service name or ID. Search for it with `mcp__plugin_pagerduty_pagerduty__list_services` to validate and get the canonical service ID.
+If the service was resolved via `$ARGUMENTS` (Step 1a), **do not write or update `.claude/risk-config.json`** — the argument is a one-time override, not a permanent mapping.
 
-### 1d: Persist configuration
-
-Once a service ID is resolved, write `.claude/risk-config.json`:
+Otherwise, once a service ID is resolved, write `.claude/risk-config.json`:
 
 ```json
 {
