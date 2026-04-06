@@ -1,9 +1,0 @@
-{
-  "pagerduty": {
-    "type": "http",
-    "url": "https://mcp.pagerduty.com/mcp",
-    "headers": {
-      "Authorization": "Token token=${PAGERDUTY_API_KEY}"
-    }
-  }
-}
